@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#18171d">
+<title>Cap Collector</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>Cap Collector</h1>
+  <span class="badge"><span id="count">0</span> caps</span>
+</header>
+
+<main>
+  <!-- Scan -->
+  <section id="view-scan" class="view">
+    <div class="viewfinder">
+      <video id="video" playsinline muted autoplay></video>
+      <div class="guide"></div>
+      <p id="cam-msg" class="cam-msg" hidden></p>
+      <button id="torch" class="torch" hidden aria-label="Toggle flashlight">🔦</button>
+    </div>
+    <p class="hint">Fill the circle with the cap, then tap the shutter.</p>
+    <div class="controls">
+      <label class="btn secondary">🖼️ Photo<input type="file" id="file" accept="image/*" hidden></label>
+      <button id="shutter" class="shutter" aria-label="Take photo"></button>
+      <button id="to-collection" class="btn secondary">🗂️ Collection</button>
+    </div>
+  </section>
+
+  <!-- Adjust (for photos picked from gallery) -->
+  <section id="view-adjust" class="view" hidden>
+    <div class="viewfinder">
+      <canvas id="adjust-canvas" width="512" height="512"></canvas>
+      <div class="guide"></div>
+    </div>
+    <p class="hint">Drag / pinch so the cap fills the circle.</p>
+    <input type="range" id="zoom" min="0.3" max="6" step="0.01" value="1" aria-label="Zoom">
+    <div class="controls">
+      <button id="adjust-cancel" class="btn secondary">Cancel</button>
+      <button id="adjust-ok" class="btn">Check cap</button>
+    </div>
+  </section>
+
+  <!-- Result -->
+  <section id="view-result" class="view" hidden>
+    <div class="result-card" id="result-card">
+      <img id="result-img" class="cap big" alt="Scanned cap">
+      <div>
+        <h2 id="result-title"></h2>
+        <p id="result-text"></p>
+      </div>
+    </div>
+    <div id="note-wrap" hidden>
+      <input id="note" type="text" placeholder="Label (optional, e.g. brand / country)" autocomplete="off">
+    </div>
+    <div id="result-actions" class="controls stack"></div>
+    <h3 id="cand-title">Closest lookalikes</h3>
+    <div id="candidates" class="cand-list"></div>
+  </section>
+
+  <!-- Collection -->
+  <section id="view-collection" class="view" hidden>
+    <div class="toolbar">
+      <button id="back-scan" class="btn">📷 Scan</button>
+      <input id="search" type="search" placeholder="Search labels…">
+    </div>
+    <div id="grid" class="grid"></div>
+    <p id="empty" class="hint" hidden>No caps yet. Go scan your first one!</p>
+    <details class="settings">
+      <summary>Settings &amp; backup</summary>
+      <label>Duplicate threshold: <b id="thr-val"></b>
+        <input type="range" id="threshold" min="50" max="95" step="1">
+      </label>
+      <p class="small">Lower = warns about duplicates more often. Higher = only warns for very close matches.</p>
+      <div class="controls stack">
+        <button id="export" class="btn secondary">⬇️ Export backup</button>
+        <label class="btn secondary">⬆️ Import backup<input type="file" id="import" accept=".json,application/json" hidden></label>
+      </div>
+      <p class="small">Your collection is stored only on this phone. Export a backup now and then.</p>
+    </details>
+  </section>
+</main>
+
+<dialog id="detail">
+  <img id="detail-img" class="cap huge" alt="">
+  <h2 id="detail-title"></h2>
+  <p id="detail-date" class="small"></p>
+  <input id="detail-note" type="text" placeholder="Label (optional)" autocomplete="off">
+  <div class="controls">
+    <button id="detail-delete" class="btn danger">Delete</button>
+    <button id="detail-close" class="btn">Close</button>
+  </div>
+</dialog>
+
+<div id="busy" class="busy" hidden><div class="spinner"></div></div>
+
+<script src="app.js"></script>
+</body>
+</html>
