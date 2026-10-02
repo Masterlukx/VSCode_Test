@@ -182,6 +182,64 @@ function busy(on) { $('busy').hidden = !on; }
 
 let stream = null, torchOn = false;
 
+/* Zoom: lets you hold the phone further away (phones can't focus closer than
+   ~10 cm). Uses the camera's own zoom where supported, the rest is done by
+   cropping the high-resolution video. */
+const ZOOM_MAX = 5;
+const camZoom = {
+  value: Math.min(ZOOM_MAX, Math.max(1, Number(localStorage.getItem('camZoom')) || 2)),
+  hw: null,       // {min, max} if the camera supports hardware zoom
+  hwApplied: 1,   // zoom currently done by the camera
+  get digital() { return this.value / this.hwApplied; },  // zoom done by cropping
+};
+
+function setCamZoom(z) {
+  camZoom.value = Math.min(ZOOM_MAX, Math.max(1, z));
+  localStorage.setItem('camZoom', String(camZoom.value));
+  $('cam-zoom').value = camZoom.value;
+  $('cam-zoom-val').textContent = camZoom.value.toFixed(1) + '×';
+  applyCamZoom();
+}
+
+let zoomPending = null;
+async function applyCamZoom() {
+  if (stream && camZoom.hw) {
+    const hw = Math.min(camZoom.hw.max, Math.max(camZoom.hw.min, camZoom.value));
+    if (hw !== camZoom.hwApplied && !zoomPending) {
+      zoomPending = stream.getVideoTracks()[0].applyConstraints({ advanced: [{ zoom: hw }] })
+        .then(() => { camZoom.hwApplied = hw; })
+        .catch(() => { camZoom.hw = null; camZoom.hwApplied = 1; })
+        .finally(() => { zoomPending = null; applyCamZoom(); });
+    }
+  }
+  $('video').style.transform = `scale(${camZoom.digital})`;
+}
+
+$('cam-zoom').oninput = (e) => setCamZoom(Number(e.target.value));
+
+// pinch to zoom on the viewfinder
+const pinch = { pointers: new Map(), dist: 0, zoom: 1 };
+const finder = $('video').parentElement;
+finder.addEventListener('pointerdown', (e) => {
+  pinch.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinch.pointers.size === 2) {
+    const [a, b] = [...pinch.pointers.values()];
+    pinch.dist = Math.hypot(a.x - b.x, a.y - b.y);
+    pinch.zoom = camZoom.value;
+  }
+});
+finder.addEventListener('pointermove', (e) => {
+  if (!pinch.pointers.has(e.pointerId)) return;
+  pinch.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinch.pointers.size === 2 && pinch.dist) {
+    const [a, b] = [...pinch.pointers.values()];
+    setCamZoom(pinch.zoom * Math.hypot(a.x - b.x, a.y - b.y) / pinch.dist);
+  }
+});
+for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) {
+  finder.addEventListener(ev, (e) => pinch.pointers.delete(e.pointerId));
+}
+
 async function startCamera() {
   if (stream) return;
   const msg = $('cam-msg');
@@ -194,7 +252,8 @@ async function startCamera() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      // high resolution so zooming by cropping still leaves plenty of detail
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } },
     });
     // the user may have left the scan view while we were waiting
     if ($('view-scan').hidden) { stopCamera(); return; }
@@ -202,7 +261,13 @@ async function startCamera() {
     const track = stream.getVideoTracks()[0];
     const tc = track.getCapabilities ? track.getCapabilities() : {};
     $('torch').hidden = !tc.torch;
-    if (tc.torch && torchOn) track.applyConstraints({ advanced: [{ torch: true }] });
+    if (tc.torch && torchOn) track.applyConstraints({ advanced: [{ torch: true }] }).catch(() => {});
+    if (tc.focusMode?.includes('continuous')) {
+      track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
+    }
+    camZoom.hw = tc.zoom && tc.zoom.max > 1 ? { min: tc.zoom.min, max: tc.zoom.max } : null;
+    camZoom.hwApplied = 1;
+    setCamZoom(camZoom.value);
   } catch (err) {
     stream = null;
     msg.textContent = 'Camera blocked or unavailable (' + err.name + '). Allow camera access, or use the Photo button.';
@@ -229,7 +294,7 @@ $('shutter').onclick = () => {
   const video = $('video');
   if (!stream || !video.videoWidth) return;
   const vw = video.videoWidth, vh = video.videoHeight;
-  const d = GUIDE * Math.min(vw, vh);
+  const d = GUIDE * Math.min(vw, vh) / camZoom.digital;
   const out = makeCapCanvas((ctx) => ctx.drawImage(video, (vw - d) / 2, (vh - d) / 2, d, d, 0, 0, CAP_SIZE, CAP_SIZE));
   checkCap(out);
 };

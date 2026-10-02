@@ -41,6 +41,9 @@ main { padding: 0 16px 24px; max-width: 640px; margin: 0 auto; }
   box-shadow: 0 0 0 999px rgba(0,0,0,.45);
   pointer-events: none;
 }
+.viewfinder video { transform-origin: center; }
+.zoom-row { display: flex; align-items: center; gap: 10px; width: 100%; max-width: min(100%, 62vh); margin: 0 auto; }
+.zoom-row b { min-width: 3.2em; text-align: right; color: var(--accent); }
 .cam-msg { position: absolute; inset: auto 12px 12px; margin: 0; padding: 10px; border-radius: 10px; background: rgba(0,0,0,.7); text-align: center; }
 .torch { position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(0,0,0,.55); font-size: 20px; }
 .torch.on { background: var(--accent); }

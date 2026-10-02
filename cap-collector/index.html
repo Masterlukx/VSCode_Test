@@ -25,7 +25,12 @@
       <p id="cam-msg" class="cam-msg" hidden></p>
       <button id="torch" class="torch" hidden aria-label="Toggle flashlight">🔦</button>
     </div>
-    <p class="hint">Fill the circle with the cap, then tap the shutter.</p>
+    <div class="zoom-row">
+      <span aria-hidden="true">🔍</span>
+      <input type="range" id="cam-zoom" min="1" max="5" step="0.1" value="2" aria-label="Camera zoom">
+      <b id="cam-zoom-val">2.0×</b>
+    </div>
+    <p class="hint">Hold the phone ~15–20 cm away and zoom (slider or pinch) until the cap fills the circle.</p>
     <div class="controls">
       <label class="btn secondary">🖼️ Photo<input type="file" id="file" accept="image/*" hidden></label>
       <button id="shutter" class="shutter" aria-label="Take photo"></button>
